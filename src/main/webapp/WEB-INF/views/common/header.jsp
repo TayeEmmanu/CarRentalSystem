@@ -15,27 +15,24 @@
     <nav>
       <ul>
         <li><a href="${pageContext.request.contextPath}/">Home</a></li>
-        <li class="dropdown">
-          <a href="${pageContext.request.contextPath}/cars">Cars</a>
-          <div class="dropdown-content">
-            <a href="${pageContext.request.contextPath}/cars">View All Cars</a>
-            <a href="${pageContext.request.contextPath}/cars/add">Add New Car</a>
-          </div>
-        </li>
-        <li class="dropdown">
-          <a href="${pageContext.request.contextPath}/customers">Customers</a>
-          <div class="dropdown-content">
-            <a href="${pageContext.request.contextPath}/customers">View All Customers</a>
-            <a href="${pageContext.request.contextPath}/customers/add">Add New Customer</a>
-          </div>
-        </li>
-        <li class="dropdown">
-          <a href="${pageContext.request.contextPath}/rentals">Rentals</a>
-          <div class="dropdown-content">
-            <a href="${pageContext.request.contextPath}/rentals">View All Rentals</a>
-            <a href="${pageContext.request.contextPath}/rentals/add">Add New Rental</a>
-          </div>
-        </li>
+        <li><a href="${pageContext.request.contextPath}/cars">Cars</a></li>
+        <li><a href="${pageContext.request.contextPath}/customers">Customers</a></li>
+        <li><a href="${pageContext.request.contextPath}/rentals">Rentals</a></li>
+
+        <c:if test="${not empty sessionScope.currentUser}">
+          <li class="user-menu">
+            <a href="#">${sessionScope.currentUser.username} ▼</a>
+            <ul class="dropdown">
+              <li><a href="${pageContext.request.contextPath}/profile">Profile</a></li>
+              <li><a href="${pageContext.request.contextPath}/logout">Logout</a></li>
+            </ul>
+          </li>
+        </c:if>
+
+        <c:if test="${empty sessionScope.currentUser}">
+          <li><a href="${pageContext.request.contextPath}/login">Login</a></li>
+          <li><a href="${pageContext.request.contextPath}/register">Register</a></li>
+        </c:if>
       </ul>
     </nav>
   </div>

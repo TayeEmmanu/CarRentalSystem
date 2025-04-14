@@ -118,6 +118,16 @@ public class DatabaseUtil {
                     "FOREIGN KEY (car_id) REFERENCES cars(id), " +
                     "FOREIGN KEY (customer_id) REFERENCES customers(id)" +
                     ")");
+
+            logger.info("Creating customers table if not exists");
+            stmt.execute("CREATE TABLE IF NOT EXISTS users (" +
+                    "id SERIAL PRIMARY KEY, " +
+                    "username VARCHAR(50) NOT NULL UNIQUE, " +
+                    "email VARCHAR(100) NOT NULL UNIQUE, " +
+                    "password_hash VARCHAR(255) NOT NULL, " +
+                    "created_at TIMESTAMP NOT NULL, " +
+                    "last_login TIMESTAMP" +
+                    ")");
         }
     }
 
@@ -144,6 +154,31 @@ public class DatabaseUtil {
                 stmt.execute("INSERT INTO customers (first_name, last_name, email, phone, driver_license) VALUES " +
                         "('John', 'Doe', 'john.doe@example.com', '555-123-4567', 'DL12345678'), " +
                         "('Jane', 'Smith', 'jane.smith@example.com', '555-987-6543', 'DL87654321')");
+            }
+        }
+
+        boolean usersEmpty = isTableEmpty(conn, "users");
+
+        if (usersEmpty) {
+            logger.info("Users table is empty, inserting sample user");
+            try {
+                // Generate password hash for "password123"
+                String passwordHash = com.example.carrentalsystem.util.PasswordUtil.hashPassword("password123");
+
+                // Use PreparedStatement to safely insert the hashed password
+                String sql = "INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)";
+                try (java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, "user");
+                    pstmt.setString(2, "user@example.com");
+                    pstmt.setString(3, passwordHash);
+                    pstmt.setTimestamp(4, new java.sql.Timestamp(System.currentTimeMillis()));
+
+                    int rowsAffected = pstmt.executeUpdate();
+                    logger.info("Sample user created successfully: {} rows affected", rowsAffected);
+                }
+            } catch (Exception e) {
+                logger.error("Failed to insert sample user: {}", e.getMessage(), e);
+                throw new SQLException("Failed to insert sample user", e);
             }
         }
     }

@@ -93,6 +93,16 @@
 
 <script src="${pageContext.request.contextPath}/js/script.js"></script>
 <script>
+  // Search cars on enter key input instead of btn click
+  var searchInput = document.getElementById("carSearch")
+  searchInput.addEventListener("keyup", function (evt){
+    if(evt.key === "Enter"){
+      evt.preventDefault();
+      searchCars();
+    }
+  })
+
+
   function confirmDelete(id, carName) {
     if (confirm('Are you sure you want to delete the car: ' + carName + '?')) {
       const form = document.createElement('form');

@@ -109,6 +109,14 @@
 
 <script src="${pageContext.request.contextPath}/js/script.js"></script>
 <script>
+  var searchInput = document.getElementById("rentalSearch");
+  searchInput.addEventListener("keyup", function (evt){
+    if(evt.key === "Enter"){
+      evt.preventDefault();
+      searchRentals();
+    }
+  })
+
   function confirmDelete(id) {
     if (confirm('Are you sure you want to delete this rental?')) {
       const form = document.createElement('form');

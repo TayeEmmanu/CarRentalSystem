@@ -85,6 +85,13 @@
 
 <script src="${pageContext.request.contextPath}/js/script.js"></script>
 <script>
+  var searchInput = document.getElementById("customerSearch");
+  searchInput.addEventListener("keyup", function (evt){
+    if(evt.key === "Enter"){
+      evt.preventDefault();
+      searchCustomers();
+    }
+  })
   function confirmDelete(id, customerName) {
     if (confirm('Are you sure you want to delete the customer: ' + customerName + '?')) {
       const form = document.createElement('form');

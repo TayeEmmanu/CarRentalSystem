@@ -8,6 +8,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <footer>
     <div class="container">
-        <p>&copy; 2025 Car Rental System. All rights reserved.</p>
+        <p>&copy; Project by: Emmanuel Tebo, Juan Camilo Montero Campo, Dmytro Hannotskyi</p>
     </div>
 </footer>
