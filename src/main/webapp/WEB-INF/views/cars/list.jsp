@@ -10,123 +10,156 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cars - Car Rental System</title>
+  <title>${viewType == 'customer' ? 'Available Cars' : 'Car Inventory'} - Car Rental System</title>
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
 </head>
 <body>
-<jsp:include page="/WEB-INF/views/common/header.jsp" />
+<jsp:include page="../common/header.jsp" />
 
-<main class="container">
-  <h1>Cars Management</h1>
+<main>
+  <div class="container">
+    <h1>${viewType == 'customer' ? 'Available Cars' : 'Car Inventory'}</h1>
 
-  <c:if test="${not empty error}">
-    <div class="error-message">
-      <p>${error}</p>
-    </div>
-  </c:if>
+    <c:if test="${not empty sessionScope.success}">
+      <div class="success-message">
+        <p>${sessionScope.success}</p>
+      </div>
+      <c:remove var="success" scope="session" />
+    </c:if>
 
-  <c:if test="${not empty success}">
-    <div class="success-message">
-      <p>${success}</p>
-    </div>
-  </c:if>
+    <c:if test="${not empty sessionScope.error}">
+      <div class="error-message">
+        <p>${sessionScope.error}</p>
+      </div>
+      <c:remove var="error" scope="session" />
+    </c:if>
 
-  <div class="action-bar">
-    <div class="search-box">
-      <input type="text" id="carSearch" placeholder="Search cars...">
-      <button class="btn" onclick="searchCars()">Search</button>
-    </div>
-    <a href="${pageContext.request.contextPath}/cars/add" class="btn">
-      <span>Add New Car</span>
-    </a>
+    <!-- Only show action buttons for staff -->
+    <c:if test="${viewType == 'staff'}">
+      <div class="action-bar">
+        <a href="${pageContext.request.contextPath}/cars/add" class="btn btn-primary">Add New Car</a>
+      </div>
+    </c:if>
+
+    <c:choose>
+      <c:when test="${empty cars}">
+        <div class="empty-state">
+          <p>${viewType == 'customer' ? 'No cars are currently available for rent.' : 'No cars found in the inventory.'}</p>
+        </div>
+      </c:when>
+      <c:otherwise>
+        <div class="car-grid">
+          <c:forEach var="car" items="${cars}">
+            <div class="car-card">
+              <div class="car-header">
+                <h3>${car.make} ${car.model}</h3>
+                <span class="car-year">${car.year}</span>
+              </div>
+              <div class="car-details">
+                <p><strong>License Plate:</strong> ${car.licensePlate}</p>
+                <p><strong>Daily Rate:</strong> ${car.dailyRate}</p>
+                <c:if test="${viewType == 'staff'}">
+                  <p>
+                    <strong>Status:</strong>
+                    <span class="status-indicator ${car.available ? 'available' : 'unavailable'}">
+                        ${car.available ? 'Available' : 'Rented'}
+                    </span>
+                  </p>
+                </c:if>
+              </div>
+              <div class="car-actions">
+                <a href="${pageContext.request.contextPath}/cars/view/${car.id}" class="btn">View Details</a>
+
+                <!-- Only show edit button for staff -->
+                <c:if test="${viewType == 'staff'}">
+                  <a href="${pageContext.request.contextPath}/cars/edit/${car.id}" class="btn btn-secondary">Edit</a>
+
+                  <!-- Only show delete button for admin -->
+                  <c:if test="${sessionScope.currentUser.admin}">
+                    <form method="post" action="${pageContext.request.contextPath}/cars/delete/${car.id}" style="display: inline;">
+                      <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this car?')">Delete</button>
+                    </form>
+                  </c:if>
+                </c:if>
+
+                <!-- Show rent button for customers if car is available -->
+                <c:if test="${viewType == 'customer'}">
+                  <a href="${pageContext.request.contextPath}/rent-car/${car.id}" class="btn btn-primary">Rent This Car</a>
+                </c:if>
+              </div>
+            </div>
+          </c:forEach>
+        </div>
+      </c:otherwise>
+    </c:choose>
   </div>
-
-  <table class="data-table" id="carsTable">
-    <thead>
-    <tr>
-      <th>ID</th>
-      <th>Make</th>
-      <th>Model</th>
-      <th>Year</th>
-      <th>License Plate</th>
-      <th>Daily Rate</th>
-      <th>Available</th>
-      <th>Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-    <c:forEach var="car" items="${cars}">
-      <tr>
-        <td>${car.id}</td>
-        <td>${car.make}</td>
-        <td>${car.model}</td>
-        <td>${car.year}</td>
-        <td>${car.licensePlate}</td>
-        <td>$${car.dailyRate}</td>
-        <td>
-                            <span class="status-indicator ${car.available ? 'available' : 'unavailable'}">
-                                ${car.available ? 'Yes' : 'No'}
-                            </span>
-        </td>
-        <td class="action-buttons">
-          <a href="${pageContext.request.contextPath}/cars/edit/${car.id}" class="btn btn-edit" title="Edit Car">
-            Edit
-          </a>
-          <button onclick="confirmDelete(${car.id}, '${car.make} ${car.model}')" class="btn btn-delete" title="Delete Car">
-            Delete
-          </button>
-        </td>
-      </tr>
-    </c:forEach>
-    </tbody>
-  </table>
-
-  <c:if test="${empty cars}">
-    <div class="empty-state">
-      <p>No cars found. Add a new car to get started.</p>
-      <a href="${pageContext.request.contextPath}/cars/add" class="btn">Add New Car</a>
-    </div>
-  </c:if>
 </main>
 
-<jsp:include page="/WEB-INF/views/common/footer.jsp" />
+<jsp:include page="../common/footer.jsp" />
 
-<script src="${pageContext.request.contextPath}/js/script.js"></script>
-<script>
-  function confirmDelete(id, carName) {
-    if (confirm('Are you sure you want to delete the car: ' + carName + '?')) {
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = '${pageContext.request.contextPath}/cars/delete/' + id;
-      document.body.appendChild(form);
-      form.submit();
-    }
+<style>
+  .car-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
   }
 
-  function searchCars() {
-    const input = document.getElementById('carSearch');
-    const filter = input.value.toUpperCase();
-    const table = document.getElementById('carsTable');
-    const rows = table.getElementsByTagName('tr');
-
-    for (let i = 1; i < rows.length; i++) {
-      let found = false;
-      const cells = rows[i].getElementsByTagName('td');
-
-      for (let j = 0; j < cells.length - 1; j++) {
-        const cell = cells[j];
-        if (cell) {
-          const textValue = cell.textContent || cell.innerText;
-          if (textValue.toUpperCase().indexOf(filter) > -1) {
-            found = true;
-            break;
-          }
-        }
-      }
-
-      rows[i].style.display = found ? '' : 'none';
-    }
+  .car-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    transition: transform 0.3s ease;
   }
-</script>
+
+  .car-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .car-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .car-header h3 {
+    margin: 0;
+  }
+
+  .car-year {
+    background-color: #f5f5f5;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    color: #555;
+  }
+
+  .car-details {
+    margin-bottom: 20px;
+  }
+
+  .car-details p {
+    margin: 8px 0;
+  }
+
+  .car-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin-top: 20px;
+  }
+</style>
 </body>
 </html>
+

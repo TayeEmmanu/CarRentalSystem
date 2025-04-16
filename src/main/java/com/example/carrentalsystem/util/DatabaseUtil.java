@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
@@ -118,6 +119,40 @@ public class DatabaseUtil {
                     "FOREIGN KEY (car_id) REFERENCES cars(id), " +
                     "FOREIGN KEY (customer_id) REFERENCES customers(id)" +
                     ")");
+
+            logger.info("Creating users table if not exists");
+            stmt.execute("CREATE TABLE IF NOT EXISTS users (" +
+                    "id SERIAL PRIMARY KEY, " +
+                    "username VARCHAR(50) NOT NULL UNIQUE, " +
+                    "email VARCHAR(100) NOT NULL UNIQUE, " +
+                    "password_hash VARCHAR(255) NOT NULL, " +
+                    "created_at TIMESTAMP NOT NULL, " +
+                    "last_login TIMESTAMP" +
+                    ")");
+
+            // Check if the users table already has the role column
+                boolean hasRoleColumn = false;
+                boolean hasActiveColumn = false;
+
+                try (ResultSet rs = conn.getMetaData().getColumns(null, null, "users", "role")) {
+                    hasRoleColumn = rs.next();
+                }
+
+                try (ResultSet rs = conn.getMetaData().getColumns(null, null, "users", "active")) {
+                    hasActiveColumn = rs.next();
+                }
+
+                // Add role column if it doesn't exist
+                if (!hasRoleColumn) {
+                    logger.info("Adding role column to users table");
+                    stmt.execute("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER'");
+                }
+
+                // Add active column if it doesn't exist
+                if (!hasActiveColumn) {
+                    logger.info("Adding active column to users table");
+                    stmt.execute("ALTER TABLE users ADD COLUMN active BOOLEAN NOT NULL DEFAULT TRUE");
+                }
         }
     }
 
@@ -144,6 +179,30 @@ public class DatabaseUtil {
                 stmt.execute("INSERT INTO customers (first_name, last_name, email, phone, driver_license) VALUES " +
                         "('John', 'Doe', 'john.doe@example.com', '555-123-4567', 'DL12345678'), " +
                         "('Jane', 'Smith', 'jane.smith@example.com', '555-987-6543', 'DL87654321')");
+            }
+        }
+
+        boolean usersEmpty = isTableEmpty(conn, "users");
+
+        if (usersEmpty) {
+            logger.info("Users table is empty, inserting sample users");
+            try {
+                // Generate password hashes
+                String adminPasswordHash = com.example.carrentalsystem.util.PasswordUtil.hashPassword("admin123");
+                String userPasswordHash = com.example.carrentalsystem.util.PasswordUtil.hashPassword("password123");
+
+                // Insert sample users with Statement
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("INSERT INTO users (username, email, password_hash, role, created_at, active) VALUES " +
+                            "('admin', 'admin@example.com', '" + adminPasswordHash + "', 'ADMIN', NOW(), TRUE), " +
+                            "('staff', 'staff@example.com', '" + userPasswordHash + "', 'STAFF', NOW(), TRUE), " +
+                            "('user', 'user@example.com', '" + userPasswordHash + "', 'CUSTOMER', NOW(), TRUE)");
+
+                    logger.info("Sample users created successfully");
+                }
+            } catch (Exception e) {
+                logger.error("Failed to insert sample users: {}", e.getMessage(), e);
+                throw new SQLException("Failed to insert sample users", e);
             }
         }
     }
