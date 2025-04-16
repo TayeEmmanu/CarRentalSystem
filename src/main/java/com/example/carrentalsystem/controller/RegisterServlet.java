@@ -13,6 +13,7 @@ import java.io.IOException;
 
 @WebServlet("/register")
 public class RegisterServlet extends HttpServlet {
+
     private final UserService userService = new UserService();
 
     @Override
@@ -38,6 +39,7 @@ public class RegisterServlet extends HttpServlet {
         String email = request.getParameter("email");
         String password = request.getParameter("password");
         String confirmPassword = request.getParameter("confirmPassword");
+        String role = request.getParameter("role");
 
         // Validate input
         boolean hasError = false;
@@ -71,10 +73,20 @@ public class RegisterServlet extends HttpServlet {
             hasError = true;
         }
 
+        // Validate role
+        if (role == null || role.trim().isEmpty()) {
+            request.setAttribute("roleError", "Account type is required");
+            hasError = true;
+        } else if (!role.equals("ADMIN") && !role.equals("STAFF") && !role.equals("CUSTOMER")) {
+            request.setAttribute("roleError", "Invalid account type");
+            hasError = true;
+        }
+
         if (hasError) {
             // Preserve input values
             request.setAttribute("username", username);
             request.setAttribute("email", email);
+            request.setAttribute("role", role);
 
             // Forward back to registration page with errors
             request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
@@ -85,6 +97,7 @@ public class RegisterServlet extends HttpServlet {
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
+        user.setRole(role);
 
         // Register user
         boolean success = userService.registerUser(user, password);
@@ -98,6 +111,7 @@ public class RegisterServlet extends HttpServlet {
             request.setAttribute("error", "Username or email already exists");
             request.setAttribute("username", username);
             request.setAttribute("email", email);
+            request.setAttribute("role", role);
             request.getRequestDispatcher("/WEB-INF/views/auth/register.jsp").forward(request, response);
         }
     }

@@ -2,6 +2,7 @@ package com.example.carrentalsystem.controller;
 
 import com.example.carrentalsystem.model.Customer;
 import com.example.carrentalsystem.service.CustomerService;
+import com.example.carrentalsystem.util.AuthUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -21,6 +22,12 @@ public class CustomerServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // Only staff can access customer management
+        if (!AuthUtil.isStaff(request)) {
+            response.sendRedirect(request.getContextPath() + "/access-denied");
+            return;
+        }
+
         String pathInfo = request.getPathInfo();
 
         if (pathInfo == null || pathInfo.equals("/")) {
@@ -45,6 +52,20 @@ public class CustomerServlet extends HttpServlet {
             } catch (NumberFormatException e) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             }
+        } else if (pathInfo.startsWith("/view/")) {
+            // Show customer details
+            try {
+                int id = Integer.parseInt(pathInfo.substring(6));
+                Optional<Customer> customer = customerService.getCustomerById(id);
+                if (customer.isPresent()) {
+                    request.setAttribute("customer", customer.get());
+                    request.getRequestDispatcher("/WEB-INF/views/customers/view.jsp").forward(request, response);
+                } else {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                }
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            }
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
         }
@@ -52,6 +73,12 @@ public class CustomerServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // Only staff can modify customers
+        if (!AuthUtil.isStaff(request)) {
+            response.sendRedirect(request.getContextPath() + "/access-denied");
+            return;
+        }
+
         String pathInfo = request.getPathInfo();
 
         if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/add")) {
@@ -62,7 +89,7 @@ public class CustomerServlet extends HttpServlet {
                 customer.setLastName(request.getParameter("lastName"));
                 customer.setEmail(request.getParameter("email"));
                 customer.setPhone(request.getParameter("phone"));
-                customer.setDriverLicense(request.getParameter("driverLicense"));
+                customer.setDriverLicense(request.getParameter("driversLicense"));
 
                 customerService.saveCustomer(customer);
 
@@ -85,10 +112,11 @@ public class CustomerServlet extends HttpServlet {
                     customer.setLastName(request.getParameter("lastName"));
                     customer.setEmail(request.getParameter("email"));
                     customer.setPhone(request.getParameter("phone"));
-                    customer.setDriverLicense(request.getParameter("driverLicense"));
+                    customer.setDriverLicense(request.getParameter("driversLicense"));
 
                     customerService.saveCustomer(customer);
 
+                    request.getSession().setAttribute("success", "Customer updated successfully!");
                     response.sendRedirect(request.getContextPath() + "/customers");
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -103,6 +131,7 @@ public class CustomerServlet extends HttpServlet {
             try {
                 int id = Integer.parseInt(pathInfo.substring(8));
                 customerService.deleteCustomer(id);
+                request.getSession().setAttribute("success", "Customer deleted successfully!");
                 response.sendRedirect(request.getContextPath() + "/customers");
             } catch (Exception e) {
                 logger.error("Error deleting customer", e);

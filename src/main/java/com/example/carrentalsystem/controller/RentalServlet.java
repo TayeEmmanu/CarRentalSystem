@@ -3,9 +3,11 @@ package com.example.carrentalsystem.controller;
 import com.example.carrentalsystem.model.Car;
 import com.example.carrentalsystem.model.Customer;
 import com.example.carrentalsystem.model.Rental;
+import com.example.carrentalsystem.model.User;
 import com.example.carrentalsystem.service.CarService;
 import com.example.carrentalsystem.service.CustomerService;
 import com.example.carrentalsystem.service.RentalService;
+import com.example.carrentalsystem.util.AuthUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -31,15 +33,25 @@ public class RentalServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // Staff can access all rental management functions
+        boolean isStaff = AuthUtil.isStaff(request);
+
+        // If not staff, redirect to my-rentals for customers
+        if (!isStaff) {
+            response.sendRedirect(request.getContextPath() + "/my-rentals");
+            return;
+        }
+
         String pathInfo = request.getPathInfo();
 
         if (pathInfo == null || pathInfo.equals("/")) {
-            // List all rentals
+            // List all rentals - staff only
             List<Rental> rentals = rentalService.getAllRentals();
             request.setAttribute("rentals", rentals);
+            request.setAttribute("viewType", "staff");
             request.getRequestDispatcher("/WEB-INF/views/rentals/list.jsp").forward(request, response);
         } else if (pathInfo.equals("/add")) {
-            // Show add rental form
+            // Show add rental form - staff only
             List<Car> availableCars = carService.getAvailableCars();
             List<Customer> customers = customerService.getAllCustomers();
 
@@ -53,7 +65,7 @@ public class RentalServlet extends HttpServlet {
             request.getRequestDispatcher("/WEB-INF/views/rentals/add.jsp").forward(request, response);
 
         } else if (pathInfo.startsWith("/edit/")) {
-            // Show edit rental form
+            // Show edit rental form - staff only
             try {
                 int id = Integer.parseInt(pathInfo.substring(6));
                 Optional<Rental> rental = rentalService.getRentalById(id);
@@ -72,6 +84,22 @@ public class RentalServlet extends HttpServlet {
             } catch (NumberFormatException e) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST);
             }
+        } else if (pathInfo.startsWith("/view/")) {
+            // Show rental details - staff can view all
+            try {
+                int id = Integer.parseInt(pathInfo.substring(6));
+                Optional<Rental> rental = rentalService.getRentalById(id);
+
+                if (rental.isPresent()) {
+                    request.setAttribute("rental", rental.get());
+                    request.setAttribute("viewType", "staff");
+                    request.getRequestDispatcher("/WEB-INF/views/rentals/view.jsp").forward(request, response);
+                } else {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                }
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            }
         } else {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
         }
@@ -79,10 +107,18 @@ public class RentalServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // Most POST operations require staff permissions
+        boolean isStaff = AuthUtil.isStaff(request);
+
         String pathInfo = request.getPathInfo();
 
         if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/add")) {
-            // Add new rental
+            // Add new rental - staff only
+            if (!isStaff) {
+                response.sendRedirect(request.getContextPath() + "/access-denied");
+                return;
+            }
+
             try {
                 int carId = Integer.parseInt(request.getParameter("carId"));
                 int customerId = Integer.parseInt(request.getParameter("customerId"));
@@ -122,7 +158,12 @@ public class RentalServlet extends HttpServlet {
                 request.getRequestDispatcher("/WEB-INF/views/rentals/add.jsp").forward(request, response);
             }
         } else if (pathInfo.startsWith("/edit/")) {
-            // Update rental
+            // Update rental - staff only
+            if (!isStaff) {
+                response.sendRedirect(request.getContextPath() + "/access-denied");
+                return;
+            }
+
             try {
                 int id = Integer.parseInt(pathInfo.substring(6));
                 Optional<Rental> existingRental = rentalService.getRentalById(id);
@@ -132,12 +173,12 @@ public class RentalServlet extends HttpServlet {
                     rental.setCarId(Integer.parseInt(request.getParameter("carId")));
                     rental.setCustomerId(Integer.parseInt(request.getParameter("customerId")));
                     rental.setStartDate(LocalDate.parse(request.getParameter("startDate"), DATE_FORMATTER));
-                    //rental.setEndDate(LocalDate.parse(request.getParameter(String.valueOf(DATE_FORMATTER)));
                     rental.setEndDate(LocalDate.parse(request.getParameter("endDate"), DATE_FORMATTER));
                     rental.setStatus(request.getParameter("status"));
 
                     rentalService.saveRental(rental);
 
+                    request.getSession().setAttribute("success", "Rental updated successfully!");
                     response.sendRedirect(request.getContextPath() + "/rentals");
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -148,10 +189,16 @@ public class RentalServlet extends HttpServlet {
                 doGet(request, response);
             }
         } else if (pathInfo.startsWith("/delete/")) {
-            // Delete rental
+            // Delete rental - staff only
+            if (!isStaff) {
+                response.sendRedirect(request.getContextPath() + "/access-denied");
+                return;
+            }
+
             try {
                 int id = Integer.parseInt(pathInfo.substring(8));
                 rentalService.deleteRental(id);
+                request.getSession().setAttribute("success", "Rental deleted successfully!");
                 response.sendRedirect(request.getContextPath() + "/rentals");
             } catch (Exception e) {
                 logger.error("Error deleting rental", e);
@@ -159,10 +206,16 @@ public class RentalServlet extends HttpServlet {
                 doGet(request, response);
             }
         } else if (pathInfo.startsWith("/complete/")) {
-            // Complete rental
+            // Complete rental - staff only
+            if (!isStaff) {
+                response.sendRedirect(request.getContextPath() + "/access-denied");
+                return;
+            }
+
             try {
                 int id = Integer.parseInt(pathInfo.substring(10));
                 rentalService.completeRental(id);
+                request.getSession().setAttribute("success", "Rental completed successfully!");
                 response.sendRedirect(request.getContextPath() + "/rentals");
             } catch (Exception e) {
                 logger.error("Error completing rental", e);
@@ -170,10 +223,16 @@ public class RentalServlet extends HttpServlet {
                 doGet(request, response);
             }
         } else if (pathInfo.startsWith("/cancel/")) {
-            // Cancel rental
+            // Process cancel rental - staff only for this endpoint
+            if (!isStaff) {
+                response.sendRedirect(request.getContextPath() + "/access-denied");
+                return;
+            }
+
             try {
                 int id = Integer.parseInt(pathInfo.substring(8));
                 rentalService.cancelRental(id);
+                request.getSession().setAttribute("success", "Rental cancelled successfully!");
                 response.sendRedirect(request.getContextPath() + "/rentals");
             } catch (Exception e) {
                 logger.error("Error cancelling rental", e);

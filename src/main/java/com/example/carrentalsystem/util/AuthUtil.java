@@ -45,6 +45,55 @@ public class AuthUtil {
     }
 
     /**
+     * Checks if the current user has the specified role
+     *
+     * @param request The HTTP request
+     * @param role The role to check
+     * @return true if the user has the role, false otherwise
+     */
+    public static boolean hasRole(HttpServletRequest request, String role) {
+        User user = getCurrentUser(request);
+        if (user == null) {
+            return false;
+        }
+
+        // Admin has access to everything
+        if (user.isAdmin()) {
+            return true;
+        }
+
+        // Staff has access to staff and customer resources
+        if (user.isStaff() && ("STAFF".equals(role) || "CUSTOMER".equals(role))) {
+            return true;
+        }
+
+        // Customer only has access to customer resources
+        return user.isCustomer() && "CUSTOMER".equals(role);
+    }
+
+    /**
+     * Checks if the current user is an admin
+     *
+     * @param request The HTTP request
+     * @return true if the user is an admin, false otherwise
+     */
+    public static boolean isAdmin(HttpServletRequest request) {
+        User user = getCurrentUser(request);
+        return user != null && user.isAdmin();
+    }
+
+    /**
+     * Checks if the current user is a staff member (or admin)
+     *
+     * @param request The HTTP request
+     * @return true if the user is a staff member or admin, false otherwise
+     */
+    public static boolean isStaff(HttpServletRequest request) {
+        User user = getCurrentUser(request);
+        return user != null && user.isStaff();
+    }
+
+    /**
      * Logs out the current user
      *
      * @param request The HTTP request

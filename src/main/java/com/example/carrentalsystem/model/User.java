@@ -6,12 +6,16 @@ public class User {
     private String username;
     private String email;
     private String passwordHash;
+    private String role; // ADMIN, STAFF, CUSTOMER
     private LocalDateTime createdAt;
     private LocalDateTime lastLogin;
+    private boolean active;
 
     // Default constructor
     public User() {
         this.createdAt = LocalDateTime.now();
+        this.active = true;
+        this.role = "CUSTOMER"; // Default role
     }
 
     // Constructor with fields
@@ -20,6 +24,18 @@ public class User {
         this.email = email;
         this.passwordHash = passwordHash;
         this.createdAt = LocalDateTime.now();
+        this.active = true;
+        this.role = "CUSTOMER"; // Default role
+    }
+
+    // Constructor with role
+    public User(String username, String email, String passwordHash, String role) {
+        this.username = username;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.role = role;
+        this.createdAt = LocalDateTime.now();
+        this.active = true;
     }
 
     // Getters and Setters
@@ -55,6 +71,14 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -71,8 +95,29 @@ public class User {
         this.lastLogin = lastLogin;
     }
 
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    // Role-based permission checks
+    public boolean isAdmin() {
+        return "ADMIN".equals(role);
+    }
+
+    public boolean isStaff() {
+        return "STAFF".equals(role) || isAdmin();
+    }
+
+    public boolean isCustomer() {
+        return "CUSTOMER".equals(role);
+    }
+
     @Override
     public String toString() {
-        return "User{" + "id=" + id + ", username='" + username + '\'' + ", email='" + email + '\'' + '}';
+        return "User{" + "id=" + id + ", username='" + username + '\'' + ", email='" + email + '\'' + ", role='" + role + '\'' + '}';
     }
 }

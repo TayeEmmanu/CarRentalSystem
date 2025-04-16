@@ -7,6 +7,7 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 public class UserDAO {
     public List<User> findAll() {
         List<User> users = new ArrayList<>();
@@ -95,8 +96,8 @@ public class UserDAO {
     }
 
     private boolean insert(User user) {
-        String sql = "INSERT INTO users (username, email, password_hash, created_at) " +
-                "VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO users (username, email, password_hash, role, created_at, active) " +
+                "VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -104,7 +105,9 @@ public class UserDAO {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());
             stmt.setString(3, user.getPasswordHash());
-            stmt.setTimestamp(4, Timestamp.valueOf(user.getCreatedAt()));
+            stmt.setString(4, user.getRole());
+            stmt.setTimestamp(5, Timestamp.valueOf(user.getCreatedAt()));
+            stmt.setBoolean(6, user.isActive());
 
             int affectedRows = stmt.executeUpdate();
 
@@ -125,7 +128,7 @@ public class UserDAO {
 
     private boolean update(User user) {
         String sql = "UPDATE users SET username = ?, email = ?, password_hash = ?, " +
-                "last_login = ? WHERE id = ?";
+                "role = ?, last_login = ?, active = ? WHERE id = ?";
 
         try (Connection conn = DatabaseUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -133,14 +136,16 @@ public class UserDAO {
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());
             stmt.setString(3, user.getPasswordHash());
+            stmt.setString(4, user.getRole());
 
             if (user.getLastLogin() != null) {
-                stmt.setTimestamp(4, Timestamp.valueOf(user.getLastLogin()));
+                stmt.setTimestamp(5, Timestamp.valueOf(user.getLastLogin()));
             } else {
-                stmt.setNull(4, Types.TIMESTAMP);
+                stmt.setNull(5, Types.TIMESTAMP);
             }
 
-            stmt.setInt(5, user.getId());
+            stmt.setBoolean(6, user.isActive());
+            stmt.setInt(7, user.getId());
 
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -167,12 +172,29 @@ public class UserDAO {
         return false;
     }
 
+    public boolean delete(int id) {
+        String sql = "DELETE FROM users WHERE id = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Error deleting user: " + e.getMessage());
+        }
+
+        return false;
+    }
+
     private User mapResultSetToUser(ResultSet rs) throws SQLException {
         User user = new User();
         user.setId(rs.getInt("id"));
         user.setUsername(rs.getString("username"));
         user.setEmail(rs.getString("email"));
         user.setPasswordHash(rs.getString("password_hash"));
+        user.setRole(rs.getString("role"));
 
         Timestamp createdAt = rs.getTimestamp("created_at");
         if (createdAt != null) {
@@ -183,6 +205,8 @@ public class UserDAO {
         if (lastLogin != null) {
             user.setLastLogin(lastLogin.toLocalDateTime());
         }
+
+        user.setActive(rs.getBoolean("active"));
 
         return user;
     }

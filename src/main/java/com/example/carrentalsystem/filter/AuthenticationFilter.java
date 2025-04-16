@@ -12,6 +12,7 @@ import java.util.List;
 
 @WebFilter("/*")
 public class AuthenticationFilter implements Filter {
+
     // Paths that don't require authentication
     private static final List<String> PUBLIC_PATHS = Arrays.asList(
             "/login", "/register", "/logout", "/css/", "/js/", "/images/"
@@ -39,12 +40,18 @@ public class AuthenticationFilter implements Filter {
             return;
         }
 
-        // User is authenticated
+        // User is authenticated, proceed to role-based filter
         chain.doFilter(request, response);
     }
 
     private boolean isPublicPath(String path) {
-        return PUBLIC_PATHS.stream().anyMatch(path::startsWith) || path.equals("/") || path.equals("/index.jsp");
+        return path.startsWith("/login") ||
+                path.startsWith("/register") ||
+                path.startsWith("/logout") ||
+                path.startsWith("/css/") ||
+                path.startsWith("/js/") ||
+                path.startsWith("/images/") ||
+                path.equals("/access-denied");
     }
 
     @Override
