@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 @WebServlet(name = "MyRentalsServlet", urlPatterns = {"/my-rentals", "/my-rentals/*"})
-    public class MyRentalsServlet extends HttpServlet {
+public class MyRentalsServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(MyRentalsServlet.class);
     private final RentalService rentalService = new RentalService();
     private final CustomerService customerService = new CustomerService();

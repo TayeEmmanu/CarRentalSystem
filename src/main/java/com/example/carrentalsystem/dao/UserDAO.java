@@ -1,7 +1,7 @@
 package com.example.carrentalsystem.dao;
 
-import com.example.carrentalsystem.model.User;
 import com.example.carrentalsystem.util.DatabaseUtil;
+import com.example.carrentalsystem.model.User;
 
 import java.sql.*;
 import java.time.LocalDateTime;

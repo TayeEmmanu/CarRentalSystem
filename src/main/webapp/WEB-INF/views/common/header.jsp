@@ -49,7 +49,7 @@
             </a>
             <ul class="dropdown">
               <li><a href="${pageContext.request.contextPath}/profile">My Profile</a></li>
-              <li><a href="${pageContext.request.contextPath}/change-password">Change Password</a></li>
+              <li><a href="${pageContext.request.contextPath}/profile/change-password">Change Password</a></li>
               <li><a href="${pageContext.request.contextPath}/logout">Logout</a></li>
             </ul>
           </li>
