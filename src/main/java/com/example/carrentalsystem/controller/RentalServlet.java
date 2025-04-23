@@ -4,7 +4,7 @@ import com.example.carrentalsystem.model.Car;
 import com.example.carrentalsystem.model.Rental;
 import com.example.carrentalsystem.model.User;
 import com.example.carrentalsystem.service.CarService;
-import com.example.carrentalsystem.service.CustomerService;
+//import com.example.carrentalsystem.service.CustomerService;
 import com.example.carrentalsystem.service.RentalService;
 import com.example.carrentalsystem.service.UserService;
 import com.example.carrentalsystem.util.AuthUtil;
@@ -28,7 +28,7 @@ public class RentalServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(RentalServlet.class);
     private final RentalService rentalService = new RentalService();
     private final CarService carService = new CarService();
-    private final CustomerService customerService = new CustomerService();
+ //   private final CustomerService customerService = new CustomerService();
     private final UserService userService = new UserService();
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 

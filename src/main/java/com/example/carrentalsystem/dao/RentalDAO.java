@@ -1,228 +1,228 @@
 package com.example.carrentalsystem.dao;
 
-import com.example.carrentalsystem.model.Car;
-import com.example.carrentalsystem.model.Customer;
 import com.example.carrentalsystem.model.Rental;
 import com.example.carrentalsystem.util.DatabaseUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.carrentalsystem.model.Car;
 
-import java.math.BigDecimal;
 import java.sql.*;
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class RentalDAO  {
-    private static final Logger logger = LoggerFactory.getLogger(RentalDAO.class);
-    private final CarDAO carDAO = new CarDAO();
-    private final CustomerDAO customerDAO = new CustomerDAO();
-
-    public List<Rental> findAll() {
-        List<Rental> rentals = new ArrayList<>();
-        String sql = "SELECT * FROM rentals ORDER BY start_date DESC";
-
-        try (Connection conn = DatabaseUtil.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                Rental rental = mapResultSetToRental(rs);
-                loadRentalRelations(rental);
-                rentals.add(rental);
-            }
-        } catch (SQLException e) {
-            logger.error("Error finding all rentals", e);
-            throw new RuntimeException("Error finding all rentals", e);
-        }
-
-        return rentals;
-    }
-
-    public List<Rental> findActiveRentals() {
-        List<Rental> rentals = new ArrayList<>();
-        String sql = "SELECT * FROM rentals WHERE status = 'ACTIVE' ORDER BY start_date";
-
-        try (Connection conn = DatabaseUtil.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                Rental rental = mapResultSetToRental(rs);
-                loadRentalRelations(rental);
-                rentals.add(rental);
-            }
-        } catch (SQLException e) {
-            logger.error("Error finding active rentals", e);
-            throw new RuntimeException("Error finding active rentals", e);
-        }
-
-        return rentals;
-    }
-
-    public List<Rental> findRentalsByCustomerId(int customerId) {
-        List<Rental> rentals = new ArrayList<>();
-        String sql = "SELECT * FROM rentals WHERE customer_id = ? ORDER BY start_date DESC";
-
-        try (Connection conn = DatabaseUtil.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, customerId);
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    Rental rental = mapResultSetToRental(rs);
-                    loadRentalRelations(rental);
-                    rentals.add(rental);
-                }
-            }
-        } catch (SQLException e) {
-            logger.error("Error finding rentals by customer ID: " + customerId, e);
-            throw new RuntimeException("Error finding rentals by customer ID: " + customerId, e);
-        }
-
-        return rentals;
-    }
+public class RentalDAO {
 
     public Optional<Rental> findById(int id) {
-        String sql = "SELECT * FROM rentals WHERE id = ?";
+        String sql = "SELECT r.*, u.username, c.make || ' ' || c.model AS car_name " +
+                "FROM rentals r " +
+                "JOIN users u ON r.user_id = u.id " +
+                "JOIN cars c ON r.car_id = c.id " +
+                "WHERE r.id = ?";
 
         try (Connection conn = DatabaseUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
+
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    Rental rental = mapResultSetToRental(rs);
-                    loadRentalRelations(rental);
-                    return Optional.of(rental);
+                    return Optional.of(mapResultSetToRental(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error finding rental by ID: " + id, e);
-            throw new RuntimeException("Error finding rental by ID: " + id, e);
+            System.err.println("Error finding rental by ID: " + e.getMessage());
         }
 
         return Optional.empty();
     }
 
-    public void save(Rental rental) {
-        if (rental.getId() > 0) {
-            update(rental);
-        } else {
-            insert(rental);
+    public List<Rental> findAll() {
+        List<Rental> rentals = new ArrayList<>();
+        String sql = "SELECT r.*, u.username, c.make || ' ' || c.model AS car_name " +
+                "FROM rentals r " +
+                "JOIN users u ON r.user_id = u.id " +
+                "JOIN cars c ON r.car_id = c.id " +
+                "ORDER BY r.start_date DESC";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                rentals.add(mapResultSetToRental(rs));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error finding all rentals: " + e.getMessage());
         }
+
+        return rentals;
     }
 
-    private void insert(Rental rental) {
-        // Changed to use PostgreSQL's RETURNING syntax for getting generated keys
-        String sql = "INSERT INTO rentals (car_id, customer_id, start_date, end_date, total_cost, status) VALUES (?, ?, ?, ?, ?, ?) RETURNING id";
+    public List<Rental> findByUserId(int userId) {
+        List<Rental> rentals = new ArrayList<>();
+        String sql = "SELECT r.*, u.username, c.make || ' ' || c.model AS car_name " +
+                "FROM rentals r " +
+                "JOIN users u ON r.user_id = u.id " +
+                "JOIN cars c ON r.car_id = c.id " +
+                "WHERE r.user_id = ? " +
+                "ORDER BY r.start_date DESC";
 
         try (Connection conn = DatabaseUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
+            stmt.setInt(1, userId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    rentals.add(mapResultSetToRental(rs));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error finding rentals by user ID: " + e.getMessage());
+        }
+
+        return rentals;
+    }
+
+    public boolean save(Rental rental) {
+        if (rental.getId() > 0) {
+            return update(rental);
+        } else {
+            return insert(rental);
+        }
+    }
+
+    private boolean insert(Rental rental) {
+        String sql = "INSERT INTO rentals (car_id, user_id, start_date, end_date, total_cost, status) " +
+                "VALUES (?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setInt(1, rental.getCarId());
-            stmt.setInt(2, rental.getCustomerId());
-            stmt.setDate(3, Date.valueOf(rental.getStartDate()));
-            stmt.setDate(4, Date.valueOf(rental.getEndDate()));
+            stmt.setInt(2, rental.getUserId());
+            stmt.setDate(3, java.sql.Date.valueOf(rental.getStartDate()));
+            stmt.setDate(4, java.sql.Date.valueOf(rental.getEndDate()));
             stmt.setBigDecimal(5, rental.getTotalCost());
             stmt.setString(6, rental.getStatus());
 
-            // Execute the query and get the generated ID directly from the result set
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    rental.setId(rs.getInt(1));
-                } else {
-                    throw new SQLException("Creating rental failed, no ID obtained.");
+            int affectedRows = stmt.executeUpdate();
+
+            if (affectedRows > 0) {
+                try (ResultSet rs = stmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        rental.setId(rs.getInt(1));
+                        return true;
+                    }
                 }
             }
-
-            // Update car availability
-            if ("ACTIVE".equals(rental.getStatus())) {
-                carDAO.updateAvailability(rental.getCarId(), false);
-            }
-
-            logger.info("Rental inserted successfully: " + rental);
         } catch (SQLException e) {
-            logger.error("Error inserting rental", e);
-            throw new RuntimeException("Error inserting rental", e);
+            System.err.println("Error inserting rental: " + e.getMessage());
         }
+
+        return false;
     }
 
-    private void update(Rental rental) {
-        String sql = "UPDATE rentals SET car_id = ?, customer_id = ?, start_date = ?, end_date = ?, total_cost = ?, status = ? WHERE id = ?";
+    private boolean update(Rental rental) {
+        String sql = "UPDATE rentals SET car_id = ?, user_id = ?, start_date = ?, end_date = ?, " +
+                "total_cost = ?, status = ? WHERE id = ?";
 
         try (Connection conn = DatabaseUtil.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, rental.getCarId());
-            stmt.setInt(2, rental.getCustomerId());
-            stmt.setDate(3, Date.valueOf(rental.getStartDate()));
-            stmt.setDate(4, Date.valueOf(rental.getEndDate()));
+            stmt.setInt(2, rental.getUserId());
+            stmt.setDate(3, java.sql.Date.valueOf(rental.getStartDate()));
+            stmt.setDate(4, java.sql.Date.valueOf(rental.getEndDate()));
             stmt.setBigDecimal(5, rental.getTotalCost());
             stmt.setString(6, rental.getStatus());
             stmt.setInt(7, rental.getId());
 
-            stmt.executeUpdate();
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
 
-            // Update car availability based on rental status
-            if ("COMPLETED".equals(rental.getStatus()) || "CANCELLED".equals(rental.getStatus())) {
-                carDAO.updateAvailability(rental.getCarId(), true);
-            } else if ("ACTIVE".equals(rental.getStatus())) {
-                carDAO.updateAvailability(rental.getCarId(), false);
-            }
-
-            logger.info("Rental updated successfully: " + rental);
         } catch (SQLException e) {
-            logger.error("Error updating rental: " + rental.getId(), e);
-            throw new RuntimeException("Error updating rental: " + rental.getId(), e);
+            System.err.println("Error updating rental: " + e.getMessage());
         }
+
+        return false;
     }
 
-    public void delete(int id) {
-        // First, get the rental to update car availability
-        Optional<Rental> rentalOpt = findById(id);
-        if (rentalOpt.isPresent()) {
-            Rental rental = rentalOpt.get();
+    public boolean delete(int id) {
+        String sql = "DELETE FROM rentals WHERE id = ?";
 
-            String sql = "DELETE FROM rentals WHERE id = ?";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            try (Connection conn = DatabaseUtil.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
 
-                stmt.setInt(1, id);
-                stmt.executeUpdate();
-
-                // Make car available again if rental was active
-                if ("ACTIVE".equals(rental.getStatus())) {
-                    carDAO.updateAvailability(rental.getCarId(), true);
-                }
-
-                logger.info("Rental deleted successfully: " + id);
-            } catch (SQLException e) {
-                logger.error("Error deleting rental: " + id, e);
-                throw new RuntimeException("Error deleting rental: " + id, e);
-            }
+        } catch (SQLException e) {
+            System.err.println("Error deleting rental: " + e.getMessage());
         }
+
+        return false;
+    }
+
+    public boolean cancelRental(int id) {
+        String sql = "UPDATE rentals SET status = 'CANCELLED' WHERE id = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error cancelling rental: " + e.getMessage());
+        }
+
+        return false;
+    }
+
+    public boolean completeRental(int id) {
+        String sql = "UPDATE rentals SET status = 'COMPLETED' WHERE id = ?";
+
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error completing rental: " + e.getMessage());
+        }
+
+        return false;
     }
 
     private Rental mapResultSetToRental(ResultSet rs) throws SQLException {
-        int id = rs.getInt("id");
-        int carId = rs.getInt("car_id");
-        int customerId = rs.getInt("customer_id");
-        LocalDate startDate = rs.getDate("start_date").toLocalDate();
-        LocalDate endDate = rs.getDate("end_date").toLocalDate();
-        BigDecimal totalCost = rs.getBigDecimal("total_cost");
-        String status = rs.getString("status");
+        Rental rental = new Rental();
+        rental.setId(rs.getInt("id"));
+        rental.setCarId(rs.getInt("car_id"));
+        rental.setUserId(rs.getInt("user_id"));
+        rental.setStartDate(rs.getDate("start_date").toLocalDate());
+        rental.setEndDate(rs.getDate("end_date").toLocalDate());
+        rental.setTotalCost(rs.getBigDecimal("total_cost"));
+        rental.setStatus(rs.getString("status"));
 
-        return new Rental(id, carId, customerId, startDate, endDate, totalCost, status);
-    }
+        // Set additional display fields if available
+        try {
+            rental.setUsername(rs.getString("username"));
+        } catch (SQLException e) {
+            // Column might not be available in all queries
+        }
 
-    private void loadRentalRelations(Rental rental) {
-        // Load car
-        carDAO.findById(rental.getCarId()).ifPresent(rental::setCar);
+        try {
+            rental.setCarName(rs.getString("car_name"));
+        } catch (SQLException e) {
+            // Column might not be available in all queries
+        }
 
-        // Load customer
-        customerDAO.findById(rental.getCustomerId()).ifPresent(rental::setCustomer);
+        return rental;
     }
 }

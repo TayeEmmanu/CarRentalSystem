@@ -1,123 +1,183 @@
 package com.example.carrentalsystem.controller;
 
-import com.example.carrentalsystem.model.Customer;
-import com.example.carrentalsystem.model.Rental;
-import com.example.carrentalsystem.model.User;
-import com.example.carrentalsystem.service.CustomerService;
-import com.example.carrentalsystem.service.RentalService;
-import com.example.carrentalsystem.util.AuthUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.example.carrentalsystem.model.Rental;
+import com.example.carrentalsystem.model.User;
+import com.example.carrentalsystem.service.RentalService;
+import com.example.carrentalsystem.util.AuthUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @WebServlet(name = "MyRentalsServlet", urlPatterns = {"/my-rentals", "/my-rentals/*"})
 public class MyRentalsServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(MyRentalsServlet.class);
-    private final RentalService rentalService = new RentalService();
-    private final CustomerService customerService = new CustomerService();
+    private final RentalService rentalService;
+
+    public MyRentalsServlet() {
+        this.rentalService = new RentalService();
+    }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // Get current user
-        User currentUser = AuthUtil.getCurrentUser(request);
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
-        // Find customer by email (assuming user email matches customer email)
-        Optional<Customer> customerOpt = customerService.getCustomerByEmail(currentUser.getEmail());
+        logger.info("MyRentalsServlet: doGet method called with path: {}", request.getRequestURI());
 
-        if (!customerOpt.isPresent()) {
-            // If no customer record exists for this user, show empty list
-            request.setAttribute("rentals", new ArrayList<>());
-            request.setAttribute("error", "No customer profile found. Please contact staff to set up your customer profile.");
-            request.getRequestDispatcher("/WEB-INF/views/my-rentals/list.jsp").forward(request, response);
-            return;
-        }
-
-        Customer customer = customerOpt.get();
-        String pathInfo = request.getPathInfo();
-
-        if (pathInfo == null || pathInfo.equals("/")) {
-            // List user's rentals
-            List<Rental> rentals = rentalService.getRentalsByCustomerId(customer.getId());
-            request.setAttribute("rentals", rentals);
-            request.setAttribute("viewType", "customer");
-            request.getRequestDispatcher("/WEB-INF/views/my-rentals/list.jsp").forward(request, response);
-        } else if (pathInfo.startsWith("/view/")) {
-            // View rental details
-            try {
-                int id = Integer.parseInt(pathInfo.substring(6));
-                Optional<Rental> rental = rentalService.getRentalById(id);
-
-                // Verify this rental belongs to the current user
-                if (rental.isPresent() && rental.get().getCustomerId() == customer.getId()) {
-                    request.setAttribute("rental", rental.get());
-                    request.setAttribute("viewType", "customer");
-                    request.getRequestDispatcher("/WEB-INF/views/my-rentals/view.jsp").forward(request, response);
-                } else {
-                    response.sendRedirect(request.getContextPath() + "/access-denied");
-                }
-            } catch (NumberFormatException e) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+        try {
+            // Get current user
+            User currentUser = AuthUtil.getCurrentUser(request);
+            if (currentUser == null) {
+                logger.warn("MyRentalsServlet: No user in session, redirecting to login");
+                response.sendRedirect(request.getContextPath() + "/login");
+                return;
             }
-        } else {
-            response.sendRedirect(request.getContextPath() + "/my-rentals");
+
+            logger.info("MyRentalsServlet: User ID: {}, Username: {}", currentUser.getId(), currentUser.getUsername());
+
+            String pathInfo = request.getPathInfo();
+            logger.info("MyRentalsServlet: Path info: {}", pathInfo);
+
+            if (pathInfo == null || pathInfo.equals("/")) {
+                // Get actual rentals for the current user from the database
+                List<Rental> rentals = rentalService.getRentalsByUserId(currentUser.getId());
+                logger.info("MyRentalsServlet: Found {} rentals for user", rentals.size());
+
+                request.setAttribute("rentals", rentals);
+
+                // Forward to the JSP
+                request.getRequestDispatcher("/WEB-INF/views/my-rentals/list.jsp").forward(request, response);
+
+                logger.info("MyRentalsServlet: Forward completed");
+            } else if (pathInfo.startsWith("/view/")) {
+                try {
+                    int rentalId = Integer.parseInt(pathInfo.substring(6));
+                    logger.info("MyRentalsServlet: Viewing rental with ID: {}", rentalId);
+
+                    // Get the actual rental from the database
+                    var rentalOpt = rentalService.getRentalById(rentalId);
+
+                    if (rentalOpt.isPresent()) {
+                        Rental rental = rentalOpt.get();
+
+                        // Verify this rental belongs to the current user
+                        if (rental.getUserId() != currentUser.getId()) {
+                            logger.warn("MyRentalsServlet: User {} attempted to view rental {} which belongs to another user",
+                                    currentUser.getId(), rentalId);
+                            response.sendRedirect(request.getContextPath() + "/access-denied");
+                            return;
+                        }
+
+                        request.setAttribute("rental", rental);
+
+                        // Forward to the JSP
+                        request.getRequestDispatcher("/WEB-INF/views/my-rentals/view.jsp").forward(request, response);
+
+                        logger.info("MyRentalsServlet: Forward completed");
+                    } else {
+                        logger.warn("MyRentalsServlet: Rental {} not found", rentalId);
+                        response.sendRedirect(request.getContextPath() + "/my-rentals");
+                    }
+                } catch (NumberFormatException e) {
+                    logger.warn("MyRentalsServlet: Invalid rental ID format: {}", e.getMessage());
+                    response.sendRedirect(request.getContextPath() + "/my-rentals");
+                }
+            } else {
+                logger.warn("MyRentalsServlet: Invalid path, redirecting to my-rentals");
+                response.sendRedirect(request.getContextPath() + "/my-rentals");
+            }
+        } catch (Exception e) {
+            logger.error("MyRentalsServlet: Unexpected error: {}", e.getMessage(), e);
+
+            // Set error message and forward to error page
+            request.setAttribute("errorMessage", "An error occurred: " + e.getMessage());
+            request.getRequestDispatcher("/WEB-INF/views/errors/error.jsp").forward(request, response);
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // Get current user
-        User currentUser = AuthUtil.getCurrentUser(request);
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
-        // Find customer by email
-        Optional<Customer> customerOpt = customerService.getCustomerByEmail(currentUser.getEmail());
+        logger.info("MyRentalsServlet: doPost method called");
 
-        if (!customerOpt.isPresent()) {
-            response.sendRedirect(request.getContextPath() + "/my-rentals");
-            return;
-        }
+        try {
+            // Get current user
+            User currentUser = AuthUtil.getCurrentUser(request);
+            if (currentUser == null) {
+                logger.warn("MyRentalsServlet: No user in session, redirecting to login");
+                response.sendRedirect(request.getContextPath() + "/login");
+                return;
+            }
 
-        Customer customer = customerOpt.get();
-        String pathInfo = request.getPathInfo();
+            String pathInfo = request.getPathInfo();
+            logger.info("MyRentalsServlet: Path info: {}", pathInfo);
 
-        if (pathInfo == null || pathInfo.equals("/")) {
-            response.sendRedirect(request.getContextPath() + "/my-rentals");
-        } else if (pathInfo.startsWith("/cancel/")) {
-            // Cancel rental
-            try {
-                int id = Integer.parseInt(pathInfo.substring(8));
-                Optional<Rental> rental = rentalService.getRentalById(id);
-
-                // Verify this rental belongs to the current user
-                if (rental.isPresent() && rental.get().getCustomerId() == customer.getId()) {
-                    // Only allow cancellation of active rentals
-                    if ("ACTIVE".equals(rental.get().getStatus())) {
-                        rentalService.cancelRental(id);
-                        request.getSession().setAttribute("success", "Rental cancelled successfully!");
-                    } else {
-                        request.getSession().setAttribute("error", "Only active rentals can be cancelled.");
-                    }
-                } else {
-                    response.sendRedirect(request.getContextPath() + "/access-denied");
-                    return;
-                }
-
+            if (pathInfo == null || pathInfo.equals("/")) {
                 response.sendRedirect(request.getContextPath() + "/my-rentals");
-            } catch (Exception e) {
-                logger.error("Error cancelling rental", e);
-                request.getSession().setAttribute("error", "Error cancelling rental: " + e.getMessage());
+            } else if (pathInfo.startsWith("/cancel/")) {
+                try {
+                    int rentalId = Integer.parseInt(pathInfo.substring(8));
+                    logger.info("MyRentalsServlet: Cancelling rental with ID: {}", rentalId);
+
+                    // Get the rental to verify ownership
+                    var rentalOpt = rentalService.getRentalById(rentalId);
+
+                    if (rentalOpt.isPresent()) {
+                        Rental rental = rentalOpt.get();
+
+                        // Verify this rental belongs to the current user
+                        if (rental.getUserId() != currentUser.getId()) {
+                            logger.warn("MyRentalsServlet: User {} attempted to cancel rental {} which belongs to another user",
+                                    currentUser.getId(), rentalId);
+                            response.sendRedirect(request.getContextPath() + "/access-denied");
+                            return;
+                        }
+
+                        // Only allow cancellation of active rentals
+                        if (!"ACTIVE".equals(rental.getStatus())) {
+                            logger.warn("MyRentalsServlet: User attempted to cancel a non-active rental");
+                            request.getSession().setAttribute("error", "Only active rentals can be cancelled");
+                            response.sendRedirect(request.getContextPath() + "/my-rentals");
+                            return;
+                        }
+
+                        // Cancel the rental
+                        boolean success = rentalService.cancelRental(rentalId);
+
+                        if (success) {
+                            logger.info("MyRentalsServlet: Rental {} cancelled successfully", rentalId);
+                            request.getSession().setAttribute("message", "Rental cancelled successfully");
+                        } else {
+                            logger.error("MyRentalsServlet: Failed to cancel rental {}", rentalId);
+                            request.getSession().setAttribute("error", "Failed to cancel rental");
+                        }
+                    } else {
+                        logger.warn("MyRentalsServlet: Rental {} not found for cancellation", rentalId);
+                        request.getSession().setAttribute("error", "Rental not found");
+                    }
+
+                    response.sendRedirect(request.getContextPath() + "/my-rentals");
+                } catch (NumberFormatException e) {
+                    logger.warn("MyRentalsServlet: Invalid rental ID format: {}", e.getMessage());
+                    response.sendRedirect(request.getContextPath() + "/my-rentals");
+                }
+            } else {
+                logger.warn("MyRentalsServlet: Invalid path, redirecting to my-rentals");
                 response.sendRedirect(request.getContextPath() + "/my-rentals");
             }
-        } else {
-            response.sendRedirect(request.getContextPath() + "/my-rentals");
+        } catch (Exception e) {
+            logger.error("MyRentalsServlet: Unexpected error: {}", e.getMessage(), e);
+
+            // Set error message and forward to error page
+            request.setAttribute("errorMessage", "An error occurred: " + e.getMessage());
+            request.getRequestDispatcher("/WEB-INF/views/errors/error.jsp").forward(request, response);
         }
     }
 }

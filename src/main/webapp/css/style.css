@@ -489,6 +489,13 @@ h1 {
 }
 
 .rental-details {
+    margin: 20px 0;
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 5px;
+}
+
+.rental-details {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 15px;
@@ -989,4 +996,46 @@ footer {
 .user-menu .dropdown a:hover {
     background-color: #f5f5f5;
     color: #3498db;
+}
+
+/* Add these styles for the system logs page */
+.error-row {
+    background-color: #ffebee;
+}
+
+.warning-row {
+    background-color: #fff8e1;
+}
+
+.filter-section {
+    margin-bottom: 15px;
+}
+
+.actions {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.detail-label {
+    font-weight: bold;
+    width: 150px;
+}
+
+.detail-value {
+    flex: 1;
+}
+
+/* Add this to your existing CSS file */
+.text-muted {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.9em;
 }
