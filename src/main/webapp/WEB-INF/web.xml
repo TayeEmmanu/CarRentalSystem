@@ -11,6 +11,16 @@
         <welcome-file>index.jsp</welcome-file>
     </welcome-file-list>
 
+    <!-- Servlet Configuration -->
+    <servlet>
+        <servlet-name>MyRentalsServlet</servlet-name>
+        <servlet-class>com.example.carrentalsystem.controller.MyRentalsServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>MyRentalsServlet</servlet-name>
+        <url-pattern>/my-rentals/*</url-pattern>
+    </servlet-mapping>
+
     <!-- Static Resource Configuration -->
     <servlet-mapping>
         <servlet-name>default</servlet-name>

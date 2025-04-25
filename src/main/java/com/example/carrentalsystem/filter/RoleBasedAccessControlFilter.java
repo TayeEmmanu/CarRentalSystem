@@ -21,8 +21,6 @@ public class RoleBasedAccessControlFilter implements Filter {
         // Define path-to-role mappings
 
         // Admin-only paths
-        pathRoleMap.put("/users", "ADMIN");
-        pathRoleMap.put("/users/", "ADMIN");
         pathRoleMap.put("/admin", "ADMIN");
         pathRoleMap.put("/admin/", "ADMIN");
         pathRoleMap.put("/reports", "ADMIN");
@@ -40,6 +38,17 @@ public class RoleBasedAccessControlFilter implements Filter {
         pathRoleMap.put("/rentals/", "STAFF");
         pathRoleMap.put("/staff", "STAFF");
         pathRoleMap.put("/staff/", "STAFF");
+
+        // Update the path-to-role mappings in the init method
+        // Change the users path from ADMIN to STAFF
+        pathRoleMap.put("/users", "STAFF");
+        pathRoleMap.put("/users/", "STAFF");
+
+        // But keep the modification paths as ADMIN only
+        pathRoleMap.put("/users/add", "ADMIN");
+        pathRoleMap.put("/users/edit", "ADMIN");
+        pathRoleMap.put("/users/delete", "ADMIN");
+        pathRoleMap.put("/users/toggle-active", "ADMIN");
 
         // Customer-only paths (staff and admin can also access)
         pathRoleMap.put("/profile", "CUSTOMER");

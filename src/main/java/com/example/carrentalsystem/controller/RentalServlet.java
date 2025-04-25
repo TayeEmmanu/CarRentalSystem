@@ -1,12 +1,12 @@
 package com.example.carrentalsystem.controller;
 
 import com.example.carrentalsystem.model.Car;
-import com.example.carrentalsystem.model.Customer;
 import com.example.carrentalsystem.model.Rental;
 import com.example.carrentalsystem.model.User;
 import com.example.carrentalsystem.service.CarService;
-import com.example.carrentalsystem.service.CustomerService;
+//import com.example.carrentalsystem.service.CustomerService;
 import com.example.carrentalsystem.service.RentalService;
+import com.example.carrentalsystem.service.UserService;
 import com.example.carrentalsystem.util.AuthUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -28,7 +28,8 @@ public class RentalServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(RentalServlet.class);
     private final RentalService rentalService = new RentalService();
     private final CarService carService = new CarService();
-    private final CustomerService customerService = new CustomerService();
+ //   private final CustomerService customerService = new CustomerService();
+    private final UserService userService = new UserService();
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @Override
@@ -53,14 +54,14 @@ public class RentalServlet extends HttpServlet {
         } else if (pathInfo.equals("/add")) {
             // Show add rental form - staff only
             List<Car> availableCars = carService.getAvailableCars();
-            List<Customer> customers = customerService.getAllCustomers();
+            List<User> users = userService.getAllUsers();
 
             // Set today's date for the form
             LocalDate today = LocalDate.now();
             String formattedToday = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
             request.setAttribute("cars", availableCars);
-            request.setAttribute("customers", customers);
+            request.setAttribute("users", users);
             request.setAttribute("today", formattedToday);
             request.getRequestDispatcher("/WEB-INF/views/rentals/add.jsp").forward(request, response);
 
@@ -72,11 +73,11 @@ public class RentalServlet extends HttpServlet {
 
                 if (rental.isPresent()) {
                     List<Car> cars = carService.getAllCars();
-                    List<Customer> customers = customerService.getAllCustomers();
+                    List<User> users = userService.getAllUsers();
 
                     request.setAttribute("rental", rental.get());
                     request.setAttribute("cars", cars);
-                    request.setAttribute("customers", customers);
+                    request.setAttribute("users", users);
                     request.getRequestDispatcher("/WEB-INF/views/rentals/edit.jsp").forward(request, response);
                 } else {
                     response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -121,14 +122,14 @@ public class RentalServlet extends HttpServlet {
 
             try {
                 int carId = Integer.parseInt(request.getParameter("carId"));
-                int customerId = Integer.parseInt(request.getParameter("customerId"));
+                int userId = Integer.parseInt(request.getParameter("userId"));
                 LocalDate startDate = LocalDate.parse(request.getParameter("startDate"));
                 LocalDate endDate = LocalDate.parse(request.getParameter("endDate"));
 
                 // Create new rental
                 Rental rental = new Rental();
                 rental.setCarId(carId);
-                rental.setCustomerId(customerId);
+                rental.setId(userId);
                 rental.setStartDate(startDate);
                 rental.setEndDate(endDate);
                 rental.setStatus("ACTIVE");
@@ -147,12 +148,13 @@ public class RentalServlet extends HttpServlet {
 
                 // Prepare form data for redisplay
                 List<Car> availableCars = carService.getAvailableCars();
-                List<Customer> customers = customerService.getAllCustomers();
+                //List<Customer> customers = customerService.getAllCustomers();
+                List<User> users = userService.getAllUsers();
                 LocalDate today = LocalDate.now();
                 String formattedToday = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
                 request.setAttribute("cars", availableCars);
-                request.setAttribute("customers", customers);
+                request.setAttribute("users", users);
                 request.setAttribute("today", formattedToday);
                 request.setAttribute("error", "Error creating rental: " + e.getMessage());
                 request.getRequestDispatcher("/WEB-INF/views/rentals/add.jsp").forward(request, response);
@@ -171,7 +173,7 @@ public class RentalServlet extends HttpServlet {
                 if (existingRental.isPresent()) {
                     Rental rental = existingRental.get();
                     rental.setCarId(Integer.parseInt(request.getParameter("carId")));
-                    rental.setCustomerId(Integer.parseInt(request.getParameter("customerId")));
+                    rental.setId(Integer.parseInt(request.getParameter("userId")));
                     rental.setStartDate(LocalDate.parse(request.getParameter("startDate"), DATE_FORMATTER));
                     rental.setEndDate(LocalDate.parse(request.getParameter("endDate"), DATE_FORMATTER));
                     rental.setStatus(request.getParameter("status"));

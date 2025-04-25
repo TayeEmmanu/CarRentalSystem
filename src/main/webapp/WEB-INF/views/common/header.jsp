@@ -15,8 +15,7 @@
             <a href="#" class="dropdown-toggle">Admin ▼</a>
             <ul class="dropdown-menu">
               <li><a href="${pageContext.request.contextPath}/users">User Management</a></li>
-              <li><a href="${pageContext.request.contextPath}/reports">Reports</a></li>
-              <li><a href="${pageContext.request.contextPath}/admin/system/settings">System Settings</a></li>
+              <li><a href="${pageContext.request.contextPath}/admin/system-logs/list">System Settings</a></li>
             </ul>
           </li>
         </c:if>
@@ -27,7 +26,6 @@
             <a href="#" class="dropdown-toggle">Management ▼</a>
             <ul class="dropdown-menu">
               <li><a href="${pageContext.request.contextPath}/cars">Car Inventory</a></li>
-              <li><a href="${pageContext.request.contextPath}/customers">Customer Records</a></li>
               <li><a href="${pageContext.request.contextPath}/rentals">Rental Management</a></li>
             </ul>
           </li>
@@ -49,7 +47,7 @@
             </a>
             <ul class="dropdown">
               <li><a href="${pageContext.request.contextPath}/profile">My Profile</a></li>
-              <li><a href="${pageContext.request.contextPath}/change-password">Change Password</a></li>
+              <li><a href="${pageContext.request.contextPath}/profile/change-password">Change Password</a></li>
               <li><a href="${pageContext.request.contextPath}/logout">Logout</a></li>
             </ul>
           </li>

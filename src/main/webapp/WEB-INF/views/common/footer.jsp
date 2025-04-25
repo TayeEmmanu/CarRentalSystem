@@ -13,24 +13,9 @@
                 <h3>Car Rental System</h3>
                 <p>Your trusted partner for car rentals</p>
             </div>
-            <div class="footer-links">
-                <h4>Quick Links</h4>
-                <ul>
-                    <li><a href="${pageContext.request.contextPath}/">Home</a></li>
-                    <li><a href="${pageContext.request.contextPath}/cars">Cars</a></li>
-                    <li><a href="${pageContext.request.contextPath}/about">About Us</a></li>
-                    <li><a href="${pageContext.request.contextPath}/contact">Contact</a></li>
-                </ul>
-            </div>
-            <div class="footer-contact">
-                <h4>Contact Us</h4>
-                <p>Email: info@carrentalsystem.com</p>
-                <p>Phone: +1 (555) 123-4567</p>
-                <p>Address: 123 Main St, City, Country</p>
-            </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2023 Car Rental System. All rights reserved.</p>
+            <p>Project By: Emmanuel Tebo, Dmytro Hannotskyi, Juan Camilo Montero-Campo</p>
         </div>
     </div>
 </footer>

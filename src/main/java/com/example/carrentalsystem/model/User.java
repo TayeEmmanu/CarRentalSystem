@@ -1,6 +1,8 @@
 package com.example.carrentalsystem.model;
 
 import java.time.LocalDateTime;
+import java.util.function.Consumer;
+
 public class User {
     private int id;
     private String username;
@@ -119,5 +121,9 @@ public class User {
     @Override
     public String toString() {
         return "User{" + "id=" + id + ", username='" + username + '\'' + ", email='" + email + '\'' + ", role='" + role + '\'' + '}';
+    }
+
+    public void ifPresent(Consumer<User> consumer) {
+        consumer.accept(this);
     }
 }

@@ -1,16 +1,15 @@
 package com.example.carrentalsystem.service;
 
 import com.example.carrentalsystem.dao.RentalDAO;
-import com.example.carrentalsystem.model.Car;
 import com.example.carrentalsystem.model.Rental;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
 public class RentalService {
+    private static final Logger logger = LoggerFactory.getLogger(RentalService.class);
     private final RentalDAO rentalDAO = new RentalDAO();
     private final CarService carService = new CarService();
 
@@ -18,63 +17,73 @@ public class RentalService {
         return rentalDAO.findAll();
     }
 
-    public List<Rental> getActiveRentals() {
-        return rentalDAO.findActiveRentals();
-    }
-
-    public List<Rental> getRentalsByCustomerId(int customerId) {
-        return rentalDAO.findRentalsByCustomerId(customerId);
-    }
-
     public Optional<Rental> getRentalById(int id) {
         return rentalDAO.findById(id);
     }
 
-    public void saveRental(Rental rental) {
-        // Calculate total cost if not set
-        if (rental.getTotalCost() == null || rental.getTotalCost().compareTo(BigDecimal.ZERO) == 0) {
-            calculateTotalCost(rental);
+    public List<Rental> getRentalsByUserId(int userId) {
+        return rentalDAO.findByUserId(userId);
+    }
+
+    public boolean saveRental(Rental rental) {
+        boolean success = rentalDAO.save(rental);
+
+        // Update car availability if rental is active
+        if (success && "ACTIVE".equals(rental.getStatus())) {
+            carService.updateCarAvailability(rental.getCarId(), false);
         }
 
-        rentalDAO.save(rental);
+        return success;
     }
 
-    public void deleteRental(int id) {
-        rentalDAO.delete(id);
+    public boolean deleteRental(int id) {
+        Optional<Rental> rental = getRentalById(id);
+        if (rental.isPresent() && "ACTIVE".equals(rental.get().getStatus())) {
+            // Make car available again if rental was active
+            carService.updateCarAvailability(rental.get().getCarId(), true);
+        }
+        return rentalDAO.delete(id);
     }
 
-    public void completeRental(int id) {
-        Optional<Rental> rentalOpt = rentalDAO.findById(id);
+    public boolean completeRental(int id) {
+        Optional<Rental> rentalOpt = getRentalById(id);
         if (rentalOpt.isPresent()) {
-            Rental rental = rentalOpt.get();
-            rental.setStatus("COMPLETED");
-            rentalDAO.save(rental);
+            boolean success = rentalDAO.completeRental(id);
 
-            // Make car available again
-            carService.updateCarAvailability(rental.getCarId(), true);
+            if (success) {
+                // Make car available again
+                carService.updateCarAvailability(rentalOpt.get().getCarId(), true);
+
+                logger.info("Rental {} completed successfully", id);
+                return true;
+            } else {
+                logger.error("Failed to complete rental with ID {}", id);
+                return false;
+            }
+        } else {
+            logger.error("Failed to complete rental: Rental with ID {} not found", id);
+            return false;
         }
     }
 
-    public void cancelRental(int id) {
-        Optional<Rental> rentalOpt = rentalDAO.findById(id);
+    public boolean cancelRental(int id) {
+        Optional<Rental> rentalOpt = getRentalById(id);
         if (rentalOpt.isPresent()) {
-            Rental rental = rentalOpt.get();
-            rental.setStatus("CANCELLED");
-            rentalDAO.save(rental);
+            boolean success = rentalDAO.cancelRental(id);
 
-            // Make car available again
-            carService.updateCarAvailability(rental.getCarId(), true);
-        }
-    }
+            if (success) {
+                // Make car available again
+                carService.updateCarAvailability(rentalOpt.get().getCarId(), true);
 
-    private void calculateTotalCost(Rental rental) {
-        Optional<Car> carOpt = carService.getCarById(rental.getCarId());
-        if (carOpt.isPresent()) {
-            Car car = carOpt.get();
-            long days = ChronoUnit.DAYS.between(rental.getStartDate(), rental.getEndDate()) + 1; // Include end date
-            BigDecimal dailyRate = car.getDailyRate();
-            BigDecimal totalCost = dailyRate.multiply(BigDecimal.valueOf(days));
-            rental.setTotalCost(totalCost);
+                logger.info("Rental {} cancelled successfully", id);
+                return true;
+            } else {
+                logger.error("Failed to cancel rental with ID {}", id);
+                return false;
+            }
+        } else {
+            logger.error("Failed to cancel rental: Rental with ID {} not found", id);
+            return false;
         }
     }
 }

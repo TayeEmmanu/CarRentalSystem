@@ -35,7 +35,9 @@
         </c:if>
 
         <div class="action-bar">
-            <a href="${pageContext.request.contextPath}/users/add" class="btn">Add User</a>
+            <c:if test="${sessionScope.currentUser.admin}">
+                <a href="${pageContext.request.contextPath}/users/add" class="btn">Add User</a>
+            </c:if>
         </div>
 
         <table class="data-table">
@@ -71,24 +73,29 @@
                     <td>${user.createdAt}</td>
                     <td>${user.lastLogin}</td>
                     <td class="actions">
-                        <a href="${pageContext.request.contextPath}/users/edit/${user.id}" class="btn btn-small">Edit</a>
+                        <c:if test="${sessionScope.currentUser.admin}">
+                            <a href="${pageContext.request.contextPath}/users/edit/${user.id}" class="btn btn-small">Edit</a>
 
-                        <c:if test="${sessionScope.currentUser.id != user.id}">
-                            <form method="post" action="${pageContext.request.contextPath}/users/toggle-active/${user.id}" style="display: inline;">
-                                <button type="submit" class="btn btn-small btn-warning">
-                                    <c:choose>
-                                        <c:when test="${user.active}">Deactivate</c:when>
-                                        <c:otherwise>Activate</c:otherwise>
-                                    </c:choose>
-                                </button>
-                            </form>
-
-                            <!-- Only show delete button for admin -->
-                            <c:if test="${sessionScope.currentUser.admin}">
-                                <form method="post" action="${pageContext.request.contextPath}/users/delete/${user.id}" style="display: inline;">
-                                    <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Are you sure you want to delete this user?')">Delete</button>
+                            <c:if test="${sessionScope.currentUser.id != user.id}">
+                                <form method="post" action="${pageContext.request.contextPath}/users/toggle-active/${user.id}" style="display: inline;">
+                                    <button type="submit" class="btn btn-small btn-warning">
+                                        <c:choose>
+                                            <c:when test="${user.active}">Deactivate</c:when>
+                                            <c:otherwise>Activate</c:otherwise>
+                                        </c:choose>
+                                    </button>
                                 </form>
+
+                                <!-- Only show delete button for admin -->
+                                <c:if test="${sessionScope.currentUser.admin}">
+                                    <form method="post" action="${pageContext.request.contextPath}/users/delete/${user.id}" style="display: inline;">
+                                        <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Are you sure you want to delete this user?')">Delete</button>
+                                    </form>
+                                </c:if>
                             </c:if>
+                        </c:if>
+                        <c:if test="${!sessionScope.currentUser.admin}">
+                            <span class="text-muted">View Only</span>
                         </c:if>
                     </td>
                 </tr>
@@ -101,4 +108,5 @@
 <jsp:include page="../common/footer.jsp" />
 </body>
 </html>
+
 

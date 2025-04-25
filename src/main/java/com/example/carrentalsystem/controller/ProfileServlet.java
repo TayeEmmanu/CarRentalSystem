@@ -5,9 +5,9 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import com.example.carrentalsystem.model.User;
 import com.example.carrentalsystem.service.UserService;
 import com.example.carrentalsystem.util.AuthUtil;
+import com.example.carrentalsystem.model.User;
 
 import java.io.IOException;
 

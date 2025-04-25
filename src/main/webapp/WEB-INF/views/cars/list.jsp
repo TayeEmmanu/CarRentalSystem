@@ -68,7 +68,7 @@
                 </c:if>
               </div>
               <div class="car-actions">
-                <a href="${pageContext.request.contextPath}/cars/view/${car.id}" class="btn">View Details</a>
+                <a href="${pageContext.request.contextPath}/rent-car/${car.id}" class="btn">View Details</a>
 
                 <!-- Only show edit button for staff -->
                 <c:if test="${viewType == 'staff'}">

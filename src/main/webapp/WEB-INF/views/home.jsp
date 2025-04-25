@@ -33,15 +33,11 @@
                   <p>Manage system users and their permissions.</p>
                   <a href="${pageContext.request.contextPath}/users" class="btn">Manage Users</a>
                 </div>
-                <div class="dashboard-card">
-                  <h3>Reports</h3>
-                  <p>View system reports and analytics.</p>
-                  <a href="${pageContext.request.contextPath}/reports" class="btn">View Reports</a>
-                </div>
+
                 <div class="dashboard-card">
                   <h3>System Settings</h3>
                   <p>Configure system settings and preferences.</p>
-                  <a href="${pageContext.request.contextPath}/system/settings" class="btn">System Settings</a>
+                  <a href="${pageContext.request.contextPath}/admin/system-logs/list" class="btn">System Settings</a>
                 </div>
               </div>
             </div>
@@ -57,8 +53,8 @@
                 </div>
                 <div class="dashboard-card">
                   <h3>Customer Records</h3>
-                  <p>View and manage customer information.</p>
-                  <a href="${pageContext.request.contextPath}/customers" class="btn">Manage Customers</a>
+                  <p>View user information.</p>
+                  <a href="${pageContext.request.contextPath}/users/*" class="btn">View Users</a>
                 </div>
                 <div class="dashboard-card">
                   <h3>Rental Management</h3>
@@ -80,7 +76,7 @@
                 <div class="dashboard-card">
                   <h3>My Rentals</h3>
                   <p>View your current and past rentals.</p>
-                  <a href="${pageContext.request.contextPath}/my-rentals" class="btn">My Rentals</a>
+                  <a href="${pageContext.request.contextPath}/my-rentals/view" class="btn">My Rentals</a>
                 </div>
                 <div class="dashboard-card">
                   <h3>My Profile</h3>

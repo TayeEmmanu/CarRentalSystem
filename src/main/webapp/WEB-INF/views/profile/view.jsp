@@ -56,7 +56,7 @@
             </div>
 
             <div class="profile-actions">
-                <a href="${pageContext.request.contextPath}/change-password" class="btn">Change Password</a>
+                <a href="${pageContext.request.contextPath}/profile/change-password" class="btn">Change Password</a>
                 <button class="btn btn-primary" id="editProfileBtn">Edit Profile</button>
             </div>
 
